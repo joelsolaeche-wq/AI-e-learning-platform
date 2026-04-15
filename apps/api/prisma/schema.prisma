@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// SQLite does not support native enums — we use String with application-level
+// validation enforced by Zod schemas in @elearning/shared.
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  /// "student" | "instructor" | "admin"
+  role      String   @default("student")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses   Course[] @relation("InstructorCourses")
+
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  thumbnail   String?
+  /// "draft" | "published" | "archived"
+  status      String   @default("draft")
+  /// "beginner" | "intermediate" | "advanced"
+  level       String   @default("beginner")
+  price       Float    @default(0)
+  /// JSON-encoded string array, e.g. '["react","typescript"]'
+  tags        String   @default("[]")
+
+  instructorId String
+  instructor   User    @relation("InstructorCourses", fields: [instructorId], references: [id])
+
+  modules      Module[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courses")
+}
+
+model Module {
+  id       String @id @default(cuid())
+  title    String
+  position Int
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  lessons  Lesson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("modules")
+}
+
+model Lesson {
+  id       String @id @default(cuid())
+  title    String
+  position Int
+  content  String?
+
+  moduleId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("lessons")
+}
